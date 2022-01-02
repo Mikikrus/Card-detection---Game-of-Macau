@@ -2,9 +2,12 @@ class Compose:
     def __init__(self, transforms):
         self.transforms = transforms
 
-    def __call__(self, img):
+    def __call__(self, img, size):
         for t in self.transforms:
-            img = t(img)
+            if type(t).__name__ == "Resize":
+                img = t(img, size)
+            else:
+                img = t(img)
         return img
 
     def __repr__(self):

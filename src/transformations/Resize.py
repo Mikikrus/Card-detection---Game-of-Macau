@@ -8,9 +8,8 @@ class Resize:
     def __init__(self, size_range=(400, 600)):
         self.size_range = size_range
 
-    def __call__(self, sample):
+    def __call__(self, sample, size):
         image, card_polygon, label_polygons = sample['image'].copy(), sample['card_polygon'], sample['label_polygons']
-        size = self.get_random_size()
         aug_image, matrix = self.resize_image(image, size)
         aug_label_polygons = [self.rotate_polygon(polygon, matrix) for polygon in label_polygons]
         aug_card_polygon = self.rotate_polygon(card_polygon, matrix)
