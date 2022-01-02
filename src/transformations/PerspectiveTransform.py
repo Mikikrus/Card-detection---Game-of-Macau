@@ -9,7 +9,7 @@ class PerspectiveTransform(PerspectiveTransformHelper):
 
     def __call__(self, sample):
         image, card_polygon, label_polygons = sample['image'], sample['card_polygon'], sample['label_polygons']
-        aug_image, projection_matrix = self.change_perspective(image)
+        aug_image, projection_matrix = self.change_perspective(image, rotation=True)
         aug_card_polygon = self.rotate_polygon(card_polygon, projection_matrix)
         aug_label_polygons = [self.rotate_polygon(polygon, projection_matrix) for polygon in label_polygons]
 
