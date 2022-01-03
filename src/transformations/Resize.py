@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-
+import copy
 
 class Resize:
     """Resizes image and polygons to given size relative to longest side of image"""
@@ -8,13 +8,21 @@ class Resize:
     def __init__(self, size_range=(400, 600)):
         self.size_range = size_range
 
-    def __call__(self, sample, size):
-        image, card_polygon, label_polygons = sample['image'].copy(), sample['card_polygon'], sample['label_polygons']
-        aug_image, matrix = self.resize_image(image, size)
-        aug_label_polygons = [self.rotate_polygon(polygon, matrix) for polygon in label_polygons]
-        aug_card_polygon = self.rotate_polygon(card_polygon, matrix)
-        return {'image': aug_image, "card_polygon": aug_card_polygon, 'label_polygons': aug_label_polygons}
-
+    def __call__(self, sample, size,on_canvas = False):
+        if not on_canvas:
+            image, card_polygon, label_polygons = sample['image'].copy(), sample['card_polygon'], sample['label_polygons']
+            aug_image, matrix = self.resize_image(image, size)
+            aug_label_polygons = [self.rotate_polygon(polygon, matrix) for polygon in label_polygons]
+            aug_card_polygon = self.rotate_polygon(card_polygon, matrix)
+            return {'image': aug_image, "card_polygon": aug_card_polygon, 'label_polygons': aug_label_polygons}
+        else:
+            image,image_dict = sample['image'].copy(),copy.deepcopy(sample['image_dict'])
+            aug_image, matrix = self.resize_image(image, size)
+            for card in image_dict:
+                label_polygons = image_dict[card]['label_polygons'].copy()
+                aug_label_polygons = [self.rotate_polygon(polygon, matrix) for polygon in label_polygons]
+                image_dict[card]['label_polygons'] = aug_label_polygons
+            return {'image':aug_image,'image_dict':image_dict}
     def get_random_size(self):
         return np.random.randint(*self.size_range)
 
