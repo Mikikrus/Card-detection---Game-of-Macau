@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 
 import cv2
-from PIL import Image
 
 
 class Card:
@@ -25,7 +24,7 @@ class Card:
     def add_label_polygon(self, label_polygon):
         self.label_polygons.append(label_polygon)
 
-    def save(self, dir_name='./interim_data'):
+    def save(self, dir_name='../interim_data'):
         Path(dir_name).mkdir(parents=True, exist_ok=True)
         template = {"filename": self.name,
                     "card_polygon": self.card_polygon,
@@ -39,12 +38,3 @@ class Card:
         image_name = os.path.join(dir_name, self.name + '.png')
         cv2.imwrite(image_name, self.image)
         print(f"{image_name} saved correctly!")
-
-    def imshow(self):
-        a = self.image.clip(0, 255).astype('uint8')
-        if a.ndim == 3:
-            if a.shape[2] == 4:
-                a = cv2.cvtColor(a, cv2.COLOR_BGRA2RGBA)
-            else:
-                a = cv2.cvtColor(a, cv2.COLOR_BGR2RGB)
-        display(Image.fromarray(a))

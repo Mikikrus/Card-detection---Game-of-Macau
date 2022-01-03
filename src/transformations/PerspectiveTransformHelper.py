@@ -1,5 +1,4 @@
-import cv2
-import numpy as np
+from utils import *
 
 
 class PerspectiveTransformHelper:
@@ -33,9 +32,9 @@ class PerspectiveTransformHelper:
         """
         angle = np.random.randint(*self.degrees_range) * np.random.choice([-1, 1])
 
-        height, width = mat.shape[:2]  # image shape has 3 dimensions
+        height, width = mat.shape[:2]
         image_center = (width / 2,
-                        height / 2)  # getRotationMatrix2D needs coordinates in reverse order (width, height) compared to shape
+                        height / 2)
 
         rotation_mat = cv2.getRotationMatrix2D(image_center, angle, 1.)
         abs_cos = abs(rotation_mat[0, 0])
@@ -47,13 +46,10 @@ class PerspectiveTransformHelper:
         rotated_mat = cv2.warpAffine(mat, rotation_mat, (bound_w, bound_h))
         return rotated_mat, rotation_mat, bound_w, bound_h
 
-    def rotate_polygon(self, pts, M):
+    def _rotate_polygon(self, pts, M):
         """Transforms a list of points, `pts`,
         using the affine transform `A`."""
-        src = np.zeros((len(pts), 1, 2))
-        src[:, 0] = pts
-        dst = np.squeeze(cv2.perspectiveTransform(src, M)) - np.array([int(self.minX), int(self.minY)])
-        return self.numpy_to_list(dst)
+        return rotate_polygon(pts, M) - np.array([int(self.minX), int(self.minY)])
 
     def change_perspective(self, img, rotation=False):
         height, width = img.shape[:2]
@@ -68,13 +64,3 @@ class PerspectiveTransformHelper:
         self.minX, self.maxX = pts2[:, 0][pts2[:, 0].argsort()][[0, -1]]
         self.minY, self.maxY = pts2[:, 1][pts2[:, 1].argsort()][[0, -1]]
         return dst[int(self.minY):int(self.maxY), int(self.minX):int(self.maxX)], M
-
-    @staticmethod
-    def numpy_to_list(array):
-        lst2 = []
-        for i in array:
-            lst = []
-            for k in i:
-                lst.append(float(k))
-            lst2.append(lst)
-        return lst2
