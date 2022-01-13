@@ -1,9 +1,8 @@
-import copy
 import glob
-import re
-
 import cv2
-
+from PIL import Image
+import re
+import copy
 
 class Params:
     def __init__(self):
@@ -16,7 +15,6 @@ class Params:
         self.play = ''
         self.msg = ''
 
-
 def draw_box(frame, box):
     box = [float(i) for i in box]
     h, w, _ = frame.shape
@@ -24,7 +22,6 @@ def draw_box(frame, box):
     start_point = (int(mid_x - box[2] * w / 1.2), int(mid_y - box[3] * h / 1.2))
     end_point = (int(mid_x + box[2] * w / 1.2), int(mid_y + box[3] * h / 1.2))
     cv2.rectangle(frame, start_point, end_point, (0, 0, 255), thickness=4, lineType=cv2.LINE_8)
-
 
 def get_frame_info(path):
     cards = {}
@@ -41,18 +38,17 @@ def get_frame_info(path):
                 cards[label]['boxes'].append(box)
     return copy.deepcopy(cards), label
 
-
 def handle_events(label, params):
     value, suite = label[:-1], label[-1]
 
-    # Jack & Queen
+    #Jack & Queen
     if value == 'Q':
         params.msg = f'Queen on everything, everything on Queen.'
     if value == 'J':
-        params.msg = f'Player {not params.current} demands something.'
+        params.msg = f'Player {params.current} demands something.'
 
-    # Handling war
-    if value == '2' or value == '3' or label == 'KH' or label == 'KS':
+    #Handling war
+    if value == '2' or value =='3' or label == 'KH' or label == 'KS':
         if not params.war:
             params.war = True
             if label == 'KH' or label == 'KS':
@@ -72,29 +68,46 @@ def handle_events(label, params):
         params.war = False
         params.msg = f'War has ended, final value: {params.war_val}'
 
-    # Handling block
-    if value == '4':
+    #Handling block
+    if value =='4':
         params.block_val += 1
         params.msg = f'Player {params.current} will be blocked for {params.block_val} turns!'
 
     elif params.block_val:
         params.block_val = 0
 
+def get_frame_number(path):
+    path = path.split("/")[-1]
+    path = path.rstrip(".txt")
+    path = path.split("_")[-1]
+    return int(path)
+
+def annotate(frame, params):
+    cv2.putText(frame, params.play,
+                    (0, 50),
+                    font, 1,
+                    (0, 255, 255),
+                    2,
+                    cv2.LINE_4)
+    cv2.putText(frame, params.msg,
+                    (0, 100),
+                    font, 1,
+                    (0, 255, 255),
+                    2,
+                    cv2.LINE_4)
 
 if __name__ == "__main__":
     numbers = re.compile(r'(\d+)')
-
 
     def numericalSort(value):
         parts = numbers.split(value)
         parts[1::2] = map(int, parts[1::2])
         return parts
 
-
-    games = glob.glob("../data/test_videos/*.mp4")
+    games = glob.glob("./videos/*.mp4")
     print(games)
     print()
-    labeled = glob.glob("../yolov5/runs/detect/exp*/labels/*_1.txt")
+    labeled = glob.glob("./yolov5/runs/detect/exp*/labels/*_1.txt")
     labeled = [f.rstrip("_1.txt") for f in labeled]
     print(labeled)
 
@@ -105,9 +118,9 @@ if __name__ == "__main__":
 
     font = cv2.FONT_HERSHEY_SIMPLEX
 
-    for file in labeled:
-        labels = glob.glob(file + '*.txt')
-        vid_path = file.split("/")[-1] + '.mp4'
+    for file_path in labeled:
+        labels = glob.glob(file_path + '*.txt')
+        vid_path = file_path.split("/")[-1] + '.mp4'
         in_path = './videos/' + vid_path
         out_path = './annotated/' + vid_path
 
@@ -115,10 +128,17 @@ if __name__ == "__main__":
 
         print(in_path)
         cap = cv2.VideoCapture(in_path)
-        result = cv2.VideoWriter(out_path, cv2.VideoWriter_fourcc(*'MJPG'), 10, (608, 608))
-
+        result = cv2.VideoWriter(out_path, cv2.VideoWriter_fourcc(*'MJPG'), 20, (608, 608))
+        con = 0
         for path in sorted(labels, key=numericalSort):
+            con += 1
             ret, frame = cap.read()
+            frame_num = get_frame_number(path)
+            while (con < frame_num):
+                con += 1
+                annotate(frame, params)
+                result.write(frame)
+                ret, frame = cap.read()
             cards, label = get_frame_info(path)
 
             for box in cards[label]['boxes']:
@@ -138,19 +158,9 @@ if __name__ == "__main__":
                 else:
                     params.f_count = 0
 
-            cv2.putText(frame, params.play,
-                        (0, 50),
-                        font, 1,
-                        (0, 255, 255),
-                        2,
-                        cv2.LINE_4)
-            cv2.putText(frame, params.msg,
-                        (0, 100),
-                        font, 1,
-                        (0, 255, 255),
-                        2,
-                        cv2.LINE_4)
+            annotate(frame, params)
             result.write(frame)
             # print(params.detected)
         cap.release()
         result.release()
+        # print(sorted(labels, key=numericalSort)[-1], con)
